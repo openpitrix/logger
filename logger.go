@@ -9,54 +9,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
 )
-
-type Level uint32
-
-const (
-	CriticalLevel Level = iota
-	ErrorLevel
-	WarnLevel
-	InfoLevel
-	DebugLevel
-)
-
-func (level Level) String() string {
-	switch level {
-	case DebugLevel:
-		return "debug"
-	case InfoLevel:
-		return "info"
-	case WarnLevel:
-		return "warning"
-	case ErrorLevel:
-		return "error"
-	case CriticalLevel:
-		return "critical"
-	}
-
-	return "unknown"
-}
-
-func StringToLevel(level string) Level {
-	switch level {
-	case "critical":
-		return CriticalLevel
-	case "error":
-		return ErrorLevel
-	case "warn", "warning":
-		return WarnLevel
-	case "debug":
-		return DebugLevel
-	case "info":
-		return InfoLevel
-	}
-	return InfoLevel
-}
 
 var logger = NewLogger().WithDepth(4)
 
@@ -138,18 +94,8 @@ func (logger *Logger) formatOutput(ctx context.Context, level Level, output stri
 		return fmt.Sprintf("%-25s -%s- %s%s",
 			now, strings.ToUpper(level.String()), output, suffix)
 	} else {
-		_, file, line, ok := runtime.Caller(logger.depth)
-		if !ok {
-			file = "???"
-			line = 0
-		}
-		// short file name
-		for i := len(file) - 1; i > 0; i-- {
-			if file[i] == '/' {
-				file = file[i+1:]
-				break
-			}
-		}
+		file, line, _ := callerInfo(logger.depth)
+
 		// 2018-03-27 02:08:44.93894 -INFO- Api service start http://openpitrix-api-gateway:9100 (main.go:44)
 		return fmt.Sprintf("%-25s -%s- %s (%s:%d)%s",
 			now, strings.ToUpper(level.String()), output, file, line, suffix)
