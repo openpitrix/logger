@@ -22,12 +22,20 @@ import (
 )
 
 func main() {
-	logger.Info(nil, "hello openpitrix.io/logger")
+	logger.Infof(nil, "hello1 openpitrix.io/logger")
+
+	logger.HideCallstack()
+	logger.Infof(nil, "hello2 openpitrix.io/logger")
+
+	logger.ShowCallstack()
+	logger.Infof(nil, "hello3 openpitrix.io/logger")
 }
 ```
 
 output:
 
 ```
-2018-10-18 14:33:06.15678 -INFO- hello openpitrix.io/logger (hello.go:14)
+2018-10-18 18:11:27.808   -INFO- hello1 openpitrix.io/logger (hello.go:14)
+2018-10-18 18:11:27.80815 -INFO- hello2 openpitrix.io/logger
+2018-10-18 18:11:27.80816 -INFO- hello3 openpitrix.io/logger (hello.go:20)
 ```

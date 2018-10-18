@@ -47,6 +47,13 @@ func Criticalf(ctx context.Context, format string, a ...interface{}) {
 	defaultLoggerHelper.Criticalf(ctx, format, a...)
 }
 
+func HideCallstack() {
+	defaultLoggerHelper.HideCallstack()
+}
+func ShowCallstack() {
+	defaultLoggerHelper.ShowCallstack()
+}
+
 func SetOutput(output io.Writer) {
 	defaultLoggerHelper.SetOutput(output)
 }
@@ -54,7 +61,7 @@ func SetOutput(output io.Writer) {
 type Logger struct {
 	Level         Level
 	output        io.Writer
-	hideCallstack bool
+	hideCallstack uint32
 	depth         int
 }
 
@@ -69,13 +76,23 @@ func New() *Logger {
 func (p *Logger) level() Level {
 	return Level(atomic.LoadUint32((*uint32)(&p.Level)))
 }
-
 func (p *Logger) SetLevel(level Level) {
 	atomic.StoreUint32((*uint32)(&p.Level), uint32(level))
 }
-
 func (p *Logger) SetLevelByString(level string) {
 	p.SetLevel(StringToLevel(level))
+}
+
+func (p *Logger) isHideCallstack() bool {
+	return atomic.LoadUint32((*uint32)(&p.hideCallstack)) != 0
+}
+func (p *Logger) HideCallstack() *Logger {
+	atomic.StoreUint32((*uint32)(&p.hideCallstack), 1)
+	return p
+}
+func (p *Logger) ShowCallstack() *Logger {
+	atomic.StoreUint32((*uint32)(&p.hideCallstack), 0)
+	return p
 }
 
 func (p *Logger) Debugf(ctx context.Context, format string, a ...interface{}) {
@@ -101,15 +118,6 @@ func (p *Logger) Errorf(ctx context.Context, format string, args ...interface{})
 func (p *Logger) Criticalf(ctx context.Context, format string, args ...interface{}) {
 	output := replacer.Replace(fmt.Sprintf(format, args...))
 	p.logOutput(ctx, CriticalLevel, output, p.depth+1)
-}
-
-func (p *Logger) HideCallstack() *Logger {
-	p.hideCallstack = true
-	return p
-}
-func (p *Logger) ShowCallstack() *Logger {
-	p.hideCallstack = false
-	return p
 }
 
 func (p *Logger) SetOutput(w io.Writer) *Logger {
@@ -144,7 +152,7 @@ func (p *Logger) logOutput(ctx context.Context, level Level, output string, call
 		suffix = fmt.Sprintf("(%s)", strings.Join(messageId, "|"))
 	}
 
-	if p.hideCallstack {
+	if p.isHideCallstack() {
 		output = fmt.Sprintf("%-25s -%s- %s%s",
 			now, strings.ToUpper(level.String()),
 			output,

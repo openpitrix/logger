@@ -11,5 +11,11 @@ import (
 )
 
 func main() {
-	logger.Info(nil, "hello openpitrix.io/logger")
+	logger.Infof(nil, "hello1 openpitrix.io/logger")
+
+	logger.HideCallstack()
+	logger.Infof(nil, "hello2 openpitrix.io/logger")
+
+	logger.ShowCallstack()
+	logger.Infof(nil, "hello3 openpitrix.io/logger")
 }
