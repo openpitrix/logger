@@ -9,5 +9,5 @@ import (
 )
 
 func Example() {
-	logger.Info(nil, "hello openpitrix.io/logger")
+	logger.Infof(nil, "hello openpitrix.io/logger")
 }

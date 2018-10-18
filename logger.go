@@ -14,45 +14,40 @@ import (
 	"time"
 )
 
-var logger = NewLogger().WithDepth(4)
+var (
+	defaultGlobalLogLevel = InfoLevel
+	defaultLoggerHelper   = New().WithDepth(1)
 
-func Info(ctx context.Context, format string, v ...interface{}) {
-	logger.Info(ctx, format, v...)
+	replacer = strings.NewReplacer("\r", "\\r", "\n", "\\n")
+)
+
+func SetLevelByString(level string) {
+	defaultGlobalLogLevel = StringToLevel(level)
+	defaultLoggerHelper.SetLevelByString(level)
 }
 
-func Debug(ctx context.Context, format string, v ...interface{}) {
-	logger.Debug(ctx, format, v...)
+func Infof(ctx context.Context, format string, a ...interface{}) {
+	defaultLoggerHelper.Infof(ctx, format, a...)
 }
 
-func Warn(ctx context.Context, format string, v ...interface{}) {
-	logger.Warn(ctx, format, v...)
+func Debugf(ctx context.Context, format string, a ...interface{}) {
+	defaultLoggerHelper.Debugf(ctx, format, a...)
 }
 
-func Error(ctx context.Context, format string, v ...interface{}) {
-	logger.Error(ctx, format, v...)
+func Warnf(ctx context.Context, format string, a ...interface{}) {
+	defaultLoggerHelper.Warnf(ctx, format, a...)
 }
 
-func Critical(ctx context.Context, format string, v ...interface{}) {
-	logger.Critical(ctx, format, v...)
+func Errorf(ctx context.Context, format string, a ...interface{}) {
+	defaultLoggerHelper.Errorf(ctx, format, a...)
+}
+
+func Criticalf(ctx context.Context, format string, a ...interface{}) {
+	defaultLoggerHelper.Criticalf(ctx, format, a...)
 }
 
 func SetOutput(output io.Writer) {
-	logger.SetOutput(output)
-}
-
-var globalLogLevel = InfoLevel
-
-func SetLevelByString(level string) {
-	logger.SetLevelByString(level)
-	globalLogLevel = StringToLevel(level)
-}
-
-func NewLogger() *Logger {
-	return &Logger{
-		Level:  globalLogLevel,
-		output: os.Stdout,
-		depth:  3,
-	}
+	defaultLoggerHelper.SetOutput(output)
 }
 
 type Logger struct {
@@ -62,84 +57,108 @@ type Logger struct {
 	depth         int
 }
 
-func (logger *Logger) level() Level {
-	return Level(atomic.LoadUint32((*uint32)(&logger.Level)))
+func New() *Logger {
+	return &Logger{
+		Level:  defaultGlobalLogLevel,
+		output: os.Stdout,
+		depth:  0,
+	}
 }
 
-func (logger *Logger) SetLevel(level Level) {
-	atomic.StoreUint32((*uint32)(&logger.Level), uint32(level))
+func (p *Logger) level() Level {
+	return Level(atomic.LoadUint32((*uint32)(&p.Level)))
 }
 
-func (logger *Logger) SetLevelByString(level string) {
-	logger.SetLevel(StringToLevel(level))
+func (p *Logger) SetLevel(level Level) {
+	atomic.StoreUint32((*uint32)(&p.Level), uint32(level))
 }
 
-var replacer = strings.NewReplacer("\r", "\\r", "\n", "\\n")
+func (p *Logger) SetLevelByString(level string) {
+	p.SetLevel(StringToLevel(level))
+}
 
-func (logger *Logger) formatOutput(ctx context.Context, level Level, output string) string {
-	now := time.Now().Format("2006-01-02 15:04:05.99999")
-	messageId := ctxutil_GetMessageId(ctx)
-	requestId := ctxutil_GetRequestId(ctx)
+func (p *Logger) Debugf(ctx context.Context, format string, a ...interface{}) {
+	output := replacer.Replace(fmt.Sprintf(format, a...))
+	p.logOutput(ctx, DebugLevel, output, p.depth+1)
+}
 
-	output = replacer.Replace(output)
+func (p *Logger) Infof(ctx context.Context, format string, a ...interface{}) {
+	output := replacer.Replace(fmt.Sprintf(format, a...))
+	p.logOutput(ctx, InfoLevel, output, p.depth+1)
+}
 
-	var suffix string
+func (p *Logger) Warnf(ctx context.Context, format string, a ...interface{}) {
+	output := replacer.Replace(fmt.Sprintf(format, a...))
+	p.logOutput(ctx, WarnLevel, output, p.depth+1)
+}
+
+func (p *Logger) Errorf(ctx context.Context, format string, args ...interface{}) {
+	output := replacer.Replace(fmt.Sprintf(format, args...))
+	p.logOutput(ctx, ErrorLevel, output, p.depth+1)
+}
+
+func (p *Logger) Criticalf(ctx context.Context, format string, args ...interface{}) {
+	output := replacer.Replace(fmt.Sprintf(format, args...))
+	p.logOutput(ctx, CriticalLevel, output, p.depth+1)
+}
+
+func (p *Logger) HideCallstack() *Logger {
+	p.hideCallstack = true
+	return p
+}
+func (p *Logger) ShowCallstack() *Logger {
+	p.hideCallstack = false
+	return p
+}
+
+func (p *Logger) SetOutput(w io.Writer) *Logger {
+	p.output = w
+	return p
+
+}
+
+func (p *Logger) WithDepth(depth int) *Logger {
+	p.depth = depth
+	return p
+}
+
+func (p *Logger) logOutput(ctx context.Context, level Level, output string, callerDepth int) {
+	if p.level() < level {
+		return
+	}
+
+	var (
+		now = time.Now().Format("2006-01-02 15:04:05.99999")
+
+		messageId = ctxutil_GetMessageId(ctx)
+		requestId = ctxutil_GetRequestId(ctx)
+
+		suffix string
+	)
+
 	if len(requestId) > 0 {
 		messageId = append(messageId, requestId)
 	}
 	if len(messageId) > 0 {
 		suffix = fmt.Sprintf("(%s)", strings.Join(messageId, "|"))
 	}
-	if logger.hideCallstack {
-		return fmt.Sprintf("%-25s -%s- %s%s",
-			now, strings.ToUpper(level.String()), output, suffix)
+
+	if p.hideCallstack {
+		output = fmt.Sprintf("%-25s -%s- %s%s",
+			now, strings.ToUpper(level.String()),
+			output,
+			suffix,
+		)
 	} else {
-		file, line, _ := callerInfo(logger.depth)
+		file, line, _ := callerInfo(callerDepth + 1)
 
 		// 2018-03-27 02:08:44.93894 -INFO- Api service start http://openpitrix-api-gateway:9100 (main.go:44)
-		return fmt.Sprintf("%-25s -%s- %s (%s:%d)%s",
-			now, strings.ToUpper(level.String()), output, file, line, suffix)
+		output = fmt.Sprintf("%-25s -%s- %s (%s:%d)%s",
+			now, strings.ToUpper(level.String()),
+			output, file, line,
+			suffix,
+		)
 	}
-}
 
-func (logger *Logger) logf(ctx context.Context, level Level, format string, args ...interface{}) {
-	if logger.level() < level {
-		return
-	}
-	fmt.Fprintln(logger.output, logger.formatOutput(ctx, level, fmt.Sprintf(format, args...)))
-}
-
-func (logger *Logger) Debug(ctx context.Context, format string, args ...interface{}) {
-	logger.logf(ctx, DebugLevel, format, args...)
-}
-
-func (logger *Logger) Info(ctx context.Context, format string, args ...interface{}) {
-	logger.logf(ctx, InfoLevel, format, args...)
-}
-
-func (logger *Logger) Warn(ctx context.Context, format string, args ...interface{}) {
-	logger.logf(ctx, WarnLevel, format, args...)
-}
-
-func (logger *Logger) Error(ctx context.Context, format string, args ...interface{}) {
-	logger.logf(ctx, ErrorLevel, format, args...)
-}
-
-func (logger *Logger) Critical(ctx context.Context, format string, args ...interface{}) {
-	logger.logf(ctx, CriticalLevel, format, args...)
-}
-
-func (logger *Logger) SetOutput(output io.Writer) *Logger {
-	logger.output = output
-	return logger
-}
-
-func (logger *Logger) HideCallstack() *Logger {
-	logger.hideCallstack = true
-	return logger
-}
-
-func (logger *Logger) WithDepth(depth int) *Logger {
-	logger.depth = depth
-	return logger
+	fmt.Fprintln(p.output, output)
 }
