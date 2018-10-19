@@ -15,14 +15,14 @@ func TestLevel(t *testing.T) {
 		Level  Level
 		expect string
 	}{
-		{CriticalLevel, "critical"},
-		{ErrorLevel, "error"},
-		{WarnLevel, "warning"},
-		{InfoLevel, "info"},
-		{DebugLevel, "debug"},
+		{CriticalLevel, "CRITICAL"},
+		{ErrorLevel, "ERROR"},
+		{WarnLevel, "WARNING"},
+		{InfoLevel, "INFO"},
+		{DebugLevel, "DEBUG"},
 
-		{Level(100), "unknown"},
-		{Level(CriticalLevel + 100), "unknown"},
+		{Level(100), "UNKNOWN"},
+		{Level(CriticalLevel + 100), "UNKNOWN"},
 	}
 
 	for i, v := range ts {

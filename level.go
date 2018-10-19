@@ -21,31 +21,31 @@ const (
 func (level Level) String() string {
 	switch level {
 	case DebugLevel:
-		return "debug"
+		return "DEBUG"
 	case InfoLevel:
-		return "info"
+		return "INFO"
 	case WarnLevel:
-		return "warning"
+		return "WARNING"
 	case ErrorLevel:
-		return "error"
+		return "ERROR"
 	case CriticalLevel:
-		return "critical"
+		return "CRITICAL"
 	}
 
-	return "unknown"
+	return "UNKNOWN"
 }
 
 func StringToLevel(level string) Level {
-	switch strings.ToLower(level) {
-	case "critical":
+	switch strings.ToUpper(level) {
+	case "CRITICAL":
 		return CriticalLevel
-	case "error":
+	case "ERROR":
 		return ErrorLevel
-	case "warn", "warning":
+	case "WARN", "WARNING":
 		return WarnLevel
-	case "debug":
+	case "DEBUG":
 		return DebugLevel
-	case "info":
+	case "INFO":
 		return InfoLevel
 	}
 	return InfoLevel

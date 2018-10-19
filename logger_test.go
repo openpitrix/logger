@@ -2,66 +2,42 @@
 // Use of this source code is governed by a Apache license
 // that can be found in the LICENSE file.
 
-// TODO: parse file/line/msg/... from log
-
 package logger
 
 import (
-	"bytes"
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func readBuf(buf *bytes.Buffer) string {
-	str := buf.String()
-	buf.Reset()
-	return str
-}
-
-var ctx = context.TODO()
-
 func TestLogger(t *testing.T) {
-	buf := new(bytes.Buffer)
-	SetOutput(buf)
+	logger := tNewLogger(t)
 
-	Debugf(ctx, "debug log, should ignore by default")
-	assert.Empty(t, readBuf(buf))
+	logger.Infof(nil, "hello")
+	logger.Warnf(nil, "error message")
 
-	Infof(ctx, "info log, should visable")
-	assert.Contains(t, readBuf(buf), "info log, should visable")
+	logs := logger.ReadAllMessage()
 
-	Infof(ctx, "format [%d]", 111)
-	log := readBuf(buf)
-	assert.Contains(t, log, "format [111]")
-	t.Log(log)
+	assert.Equal(t, len(logs), 2)
 
-	Infof(ctxutil_SetMessageId(ctx, []string{"xxxxx", "yyyyy"}), "format [%d]", 111)
-	log = readBuf(buf)
-	assert.Contains(t, log, "format [111]")
-	t.Log(log)
+	assert.Equal(t, logs[0].Level, "INFO")
+	assert.Equal(t, logs[0].Text, "hello")
+	assert.Equal(t, logs[0].File, "logger_test.go")
+	assert.Equal(t, logs[0].Line, 16)
 
-	SetLevelByString("debug")
-	Debugf(ctx, "debug log, now it becomes visible")
-	assert.Contains(t, readBuf(buf), "debug log, now it becomes visible")
-
-	defaultLoggerHelper = New()
-	defaultLoggerHelper.SetOutput(buf)
-
-	defaultLoggerHelper.HideCallstack()
-	defaultLoggerHelper.Warnf(nil, "log_content")
-	log = readBuf(buf)
-	assert.Regexp(t, " -WARNING- log_content", log)
-	t.Log(log)
+	assert.Equal(t, logs[1].Level, "WARNING")
+	assert.Equal(t, logs[1].Text, "error message")
+	assert.Equal(t, logs[1].File, "logger_test.go")
+	assert.Equal(t, logs[1].Line, 17)
 }
 
-func TestReplacer(t *testing.T) {
+func TestEscapeNewline(t *testing.T) {
 	input := `
 x
 y
 z
 `
 	output := `\nx\ny\nz\n`
-	assert.Equal(t, output, replacer.Replace(input))
+
+	assert.Equal(t, output, escapeNewline(input))
 }

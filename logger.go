@@ -18,9 +18,12 @@ import (
 var (
 	defaultGlobalLogLevel = InfoLevel
 	defaultLoggerHelper   = New().WithDepth(1)
-
-	replacer = strings.NewReplacer("\r", "\\r", "\n", "\\n")
 )
+
+func escapeNewline(s string) string {
+	var replacer = strings.NewReplacer("\r", "\\r", "\n", "\\n")
+	return replacer.Replace(s)
+}
 
 func SetLevelByString(level string) {
 	defaultGlobalLogLevel = StringToLevel(level)
@@ -96,34 +99,33 @@ func (p *Logger) ShowCallstack() *Logger {
 }
 
 func (p *Logger) Debugf(ctx context.Context, format string, a ...interface{}) {
-	output := replacer.Replace(fmt.Sprintf(format, a...))
+	output := escapeNewline(fmt.Sprintf(format, a...))
 	p.logOutput(ctx, DebugLevel, output, p.depth+1)
 }
 
 func (p *Logger) Infof(ctx context.Context, format string, a ...interface{}) {
-	output := replacer.Replace(fmt.Sprintf(format, a...))
+	output := escapeNewline(fmt.Sprintf(format, a...))
 	p.logOutput(ctx, InfoLevel, output, p.depth+1)
 }
 
 func (p *Logger) Warnf(ctx context.Context, format string, a ...interface{}) {
-	output := replacer.Replace(fmt.Sprintf(format, a...))
+	output := escapeNewline(fmt.Sprintf(format, a...))
 	p.logOutput(ctx, WarnLevel, output, p.depth+1)
 }
 
 func (p *Logger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	output := replacer.Replace(fmt.Sprintf(format, args...))
+	output := escapeNewline(fmt.Sprintf(format, args...))
 	p.logOutput(ctx, ErrorLevel, output, p.depth+1)
 }
 
 func (p *Logger) Criticalf(ctx context.Context, format string, args ...interface{}) {
-	output := replacer.Replace(fmt.Sprintf(format, args...))
+	output := escapeNewline(fmt.Sprintf(format, args...))
 	p.logOutput(ctx, CriticalLevel, output, p.depth+1)
 }
 
 func (p *Logger) SetOutput(w io.Writer) *Logger {
 	p.output = w
 	return p
-
 }
 
 func (p *Logger) WithDepth(depth int) *Logger {

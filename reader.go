@@ -2,48 +2,14 @@
 // Use of this source code is governed by a Apache license
 // that can be found in the LICENSE file.
 
-// +build ignore
-
-package main
+package logger
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-
-	"openpitrix.io/logger"
 )
-
-func main() {
-	logger.Infof(nil, "hello1 openpitrix")
-
-	logger.HideCallstack()
-	logger.Infof(nil, "hello2 openpitrix")
-
-	logger.ShowCallstack()
-	logger.Infof(nil, "hello3 openpitrix")
-
-	{
-		var buf bytes.Buffer
-		logger := logger.New().SetOutput(&buf)
-
-		logger.Infof(nil, "hello4 openpitrix")
-		logger.Infof(nil, "hello5 openpitrix\nlogger")
-		logger.Infof(nil, "")
-		fmt.Println(buf.String())
-	}
-
-	t, err := time.Parse("2006-01-02 15:04:05.99999", "2018-10-19 15:12:48.53323 aaaa")
-
-	fmt.Println(t, err)
-
-	var xs string
-	var line int
-	fmt.Sscanf("(aa.go:12)", "%s:%d", &xs, &line)
-	fmt.Println(xs, line)
-}
 
 type logMessage struct {
 	Time  time.Time
@@ -63,6 +29,7 @@ func readLogs(logs string) []logMessage {
 	)
 
 	for _, s := range strings.Split(logs, "\n") {
+		s = strings.TrimSpace(s)
 		if len(s) < minLogLen {
 			continue
 		}
@@ -82,10 +49,16 @@ func readLogs(logs string) []logMessage {
 		if level == "" {
 			continue
 		}
-		level = strings.Trim(level, "-")
 
 		// skip level
-		s = s[len(level):]
+		if len(s) > len(level) {
+			s = s[len(level)+1:]
+		} else {
+			s = s[len(level):]
+		}
+
+		// fix level
+		level = strings.Trim(level, "-")
 
 		// 3. parse file:line
 		filenameStartPos := strings.LastIndex(s, "(")
@@ -121,11 +94,3 @@ func readLogs(logs string) []logMessage {
 
 	return results
 }
-
-/*
-
-	"2018-10-18 23:06:42.34363 -INFO- hello1 openpitrix (hello.go:17)",
-	"2018-10-18 23:06:42.34379 -INFO- hello2 openpitrix",
-	"2018-10-18 23:06:42.3438  -INFO- hello3 openpitrix (hello.go:23)",
-	"2018-10-18 23:06:42.34381 -INFO- hello4 openpitrix (hello.go:29)",
-*/
