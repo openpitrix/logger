@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	messageIdKey = "x-message-id"
-	requestIdKey = "x-request-id"
+	MessageIdKey = "x-message-id"
+	RequestIdKey = "x-request-id"
 )
 
 type getMetadataFromContext func(ctx context.Context) (md metadata.MD, ok bool)
@@ -22,7 +22,46 @@ var getMetadataFromContextFunc = []getMetadataFromContext{
 	metadata.FromIncomingContext,
 }
 
-func ctxutil_GetValueFromContext(ctx context.Context, key string) []string {
+func GetRequestId(ctx context.Context) string {
+	rid := GetValue(ctx, RequestIdKey)
+	if len(rid) == 0 {
+		return ""
+	}
+	return rid[0]
+}
+func SetRequestId(ctx context.Context, requestId string) context.Context {
+	ctx = context.WithValue(ctx, RequestIdKey, []string{requestId})
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		md = metadata.MD{}
+	}
+	md[RequestIdKey] = []string{requestId}
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
+func GetMessageId(ctx context.Context) []string {
+	return GetValue(ctx, MessageIdKey)
+}
+func SetMessageId(ctx context.Context, messageId ...string) context.Context {
+	ctx = context.WithValue(ctx, MessageIdKey, messageId)
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		md = metadata.MD{}
+	}
+	md[MessageIdKey] = messageId
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
+func AppendMessageId(ctx context.Context, messageId ...string) context.Context {
+	m := GetMessageId(ctx)
+	m = append(m, messageId...)
+	return SetMessageId(ctx, m...)
+}
+func ClearMessageId(ctx context.Context) context.Context {
+	return SetMessageId(ctx)
+}
+
+func GetValue(ctx context.Context, key string) []string {
 	if ctx == nil {
 		return []string{}
 	}
@@ -45,50 +84,4 @@ func ctxutil_GetValueFromContext(ctx context.Context, key string) []string {
 		return []string{s}
 	}
 	return []string{}
-}
-
-func ctxutil_GetMessageId(ctx context.Context) []string {
-	return ctxutil_GetValueFromContext(ctx, messageIdKey)
-}
-
-func ctxutil_SetMessageId(ctx context.Context, messageId []string) context.Context {
-	ctx = context.WithValue(ctx, messageIdKey, messageId)
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		md = metadata.MD{}
-	}
-	md[messageIdKey] = messageId
-	return metadata.NewOutgoingContext(ctx, md)
-}
-
-func ctxutil_AddMessageId(ctx context.Context, messageId ...string) context.Context {
-	m := ctxutil_GetMessageId(ctx)
-	m = append(m, messageId...)
-	return ctxutil_SetMessageId(ctx, m)
-}
-
-func ctxutil_ClearMessageId(ctx context.Context) context.Context {
-	return ctxutil_SetMessageId(ctx, []string{})
-}
-
-func ctxutil_Copy(src, dst context.Context) context.Context {
-	return ctxutil_SetMessageId(dst, ctxutil_GetMessageId(src))
-}
-
-func ctxutil_GetRequestId(ctx context.Context) string {
-	rid := ctxutil_GetValueFromContext(ctx, requestIdKey)
-	if len(rid) == 0 {
-		return ""
-	}
-	return rid[0]
-}
-
-func ctxutil_SetRequestId(ctx context.Context, requestId string) context.Context {
-	ctx = context.WithValue(ctx, requestIdKey, []string{requestId})
-	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		md = metadata.MD{}
-	}
-	md[requestIdKey] = []string{requestId}
-	return metadata.NewOutgoingContext(ctx, md)
 }
