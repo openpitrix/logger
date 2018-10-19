@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"openpitrix.io/logger/ctxutil"
 )
 
 var (
@@ -141,8 +143,8 @@ func (p *Logger) logOutput(ctx context.Context, level Level, output string, call
 	var (
 		now = time.Now().Format("2006-01-02 15:04:05.99999")
 
-		messageId = ctxutil_GetMessageId(ctx)
-		requestId = ctxutil_GetRequestId(ctx)
+		messageId = ctxutil.GetMessageId(ctx)
+		requestId = ctxutil.GetRequestId(ctx)
 
 		suffix string
 	)

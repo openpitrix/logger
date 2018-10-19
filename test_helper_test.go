@@ -9,6 +9,8 @@ import (
 	"context"
 	"io/ioutil"
 	"testing"
+
+	"openpitrix.io/logger/ctxutil"
 )
 
 type tLogger struct {
@@ -36,7 +38,7 @@ func (p *tLogger) ReadAllMessage() []logMessage {
 
 func tNewCtxWithMessageId(reqId string, messageId ...string) context.Context {
 	ctx := context.Background()
-	ctx = ctxutil_SetRequestId(ctx, reqId)
-	ctx = ctxutil_SetMessageId(ctx, messageId)
+	ctx = ctxutil.SetRequestId(ctx, reqId)
+	ctx = ctxutil.SetMessageId(ctx, messageId...)
 	return ctx
 }
