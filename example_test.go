@@ -20,5 +20,5 @@ func Example_withContext() {
 	ctx = ctxutil.SetRequestId(ctx, "req-id-001")
 	ctx = ctxutil.SetMessageId(ctx, "msg-001", "msg-002")
 
-	logger.Infof(nil, "hello openpitrix")
+	logger.Infof(ctx, "hello openpitrix")
 }
