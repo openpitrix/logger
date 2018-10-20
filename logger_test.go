@@ -44,7 +44,7 @@ func TestLogger_withContext(t *testing.T) {
 	ctx = ctxutil.SetMessageId(ctx, "msg-001", "msg-002")
 	logger.Infof(ctx, "hello context2")
 
-	ctx = ctxutil.SetRequestId(ctx, "")
+	ctx = ctxutil.ClearRequestId(ctx)
 	logger.Infof(ctx, "hello context3")
 
 	logs := logger.ReadAllMessage()

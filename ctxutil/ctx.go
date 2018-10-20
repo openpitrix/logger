@@ -39,6 +39,9 @@ func SetRequestId(ctx context.Context, requestId string) context.Context {
 	md[RequestIdKey] = []string{requestId}
 	return metadata.NewOutgoingContext(ctx, md)
 }
+func ClearRequestId(ctx context.Context) context.Context {
+	return SetRequestId(ctx, "")
+}
 
 func GetMessageId(ctx context.Context) []string {
 	return GetValue(ctx, MessageIdKey)
