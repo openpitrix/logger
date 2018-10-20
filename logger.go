@@ -149,11 +149,14 @@ func (p *Logger) logOutput(ctx context.Context, level Level, output string, call
 		suffix string
 	)
 
-	if len(requestId) > 0 {
-		messageId = append(messageId, requestId)
-	}
 	if len(messageId) > 0 {
-		suffix = fmt.Sprintf("(%s)", strings.Join(messageId, "|"))
+		suffix = strings.Join(messageId, "|")
+	}
+	if len(requestId) > 0 || suffix != "" {
+		suffix += "@" + requestId
+	}
+	if suffix != "" {
+		suffix = "{" + suffix + "}"
 	}
 
 	if p.isHideCallstack() {

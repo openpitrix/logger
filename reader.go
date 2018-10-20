@@ -12,11 +12,13 @@ import (
 )
 
 type logMessage struct {
-	Time  time.Time
-	Level string
-	Text  string
-	File  string
-	Line  int
+	Time      time.Time
+	RequestId string
+	MessageId []string
+	Level     string
+	Text      string
+	File      string
+	Line      int
 }
 
 func readLogs(logs string) []logMessage {
@@ -60,7 +62,7 @@ func readLogs(logs string) []logMessage {
 		// fix level
 		level = strings.Trim(level, "-")
 
-		// 3. parse file:line
+		// 3. parse (file:line)
 		filenameStartPos := strings.LastIndex(s, "(")
 		lineStartPos := strings.LastIndex(s, ":")
 		lineEndPos := strings.LastIndex(s, ")")
@@ -74,7 +76,21 @@ func readLogs(logs string) []logMessage {
 			fileline, _ = strconv.Atoi(s[lineStartPos+1 : lineEndPos])
 		}
 
-		// 4. parse text
+		// 4. parse {msg-id|...@req-id}
+		msgIdStartPos := strings.LastIndex(s, "{")
+		reqIdStartPos := strings.LastIndex(s, "@")
+		reqIdEndPos := strings.LastIndex(s, "}")
+
+		var msgId []string
+		var reqId string
+		if msgIdStartPos >= 0 && reqIdStartPos > (msgIdStartPos+1) {
+			msgId = strings.Split(s[msgIdStartPos+1:reqIdStartPos], "|")
+		}
+		if reqIdStartPos < reqIdEndPos {
+			reqId = s[reqIdStartPos+1 : reqIdEndPos]
+		}
+
+		// 5. parse text
 		var text string
 		if filename != "" {
 			text = strings.TrimSpace(s[:filenameStartPos])
@@ -84,11 +100,13 @@ func readLogs(logs string) []logMessage {
 
 		// OK
 		results = append(results, logMessage{
-			Time:  when,
-			Level: strings.Trim(level, "-"),
-			Text:  text,
-			File:  filename,
-			Line:  fileline,
+			Time:      when,
+			RequestId: reqId,
+			MessageId: msgId,
+			Level:     strings.Trim(level, "-"),
+			Text:      text,
+			File:      filename,
+			Line:      fileline,
 		})
 	}
 
