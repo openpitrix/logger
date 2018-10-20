@@ -3,11 +3,13 @@
 # that can be found in the LICENSE file.
 
 language: go
+
 go:
 - '1.11'
 - 'tip'
+
 go_import_path: openpitrix.io/logger
 
 script:
-  - env GO111MODULE=on go build
-  - env GO111MODULE=on go test
+- env GO111MODULE=on go test ./...
+- env GO111MODULE=on go vet ./...
